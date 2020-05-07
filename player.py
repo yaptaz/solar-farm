@@ -2,28 +2,33 @@ import numpy as np
 import os
 from numpy.random import randint
 
+
 class Player:
 
     def __init__(self):
         self.dt = 0.5
-        self.efficiency=0.95
-        self.sun=[]
-        self.bill = np.zeros(48) # prix de vente de l'électricité
-        self.load= np.zeros(48) # chargement de la batterie (li)
-        self.battery_stock = np.zeros(49) #a(t)
+        self.efficiency = 0.95
+        self.sun = []
+        self.bill = np.zeros(48)  # prix de vente de l'électricité
+        self.load = np.zeros(48)  # chargement de la batterie (li)
+        self.battery_stock = np.zeros(49)  # a(t)
         self.capacity = 100
         self.max_load = 70
-        self.prices = {"purchase" : [],"sale" : []}
-        self.imbalance={"purchase_cover":[], "sale_cover": []}
+        self.prices = {"purchase": [], "sale": []}
+        self.imbalance = {"purchase_cover": [], "sale_cover": []}
+        self.memoire_NRJ = 0
 
     def take_decision(self, time):
         duree_pas_de_temps = self.dt
         chargement_batterie = 0
 
-        NRJ = self.battery_stock[39] / 8
+        if (time == 40):
+            self.memoire_NRJ = self.battery_stock[39] / 8
+
+        NRJ = self.memoire_NRJ
         if (NRJ > self.max_load * duree_pas_de_temps):
             cas = 1  # batterie chargee a bloc
-            NRJ_restante = self.battery_stock[39] - 8 * self.max_load * duree_pas_de_temps  # pour decharger la nuit
+            NRJ_restante = 8 * (NRJ - self.max_load * duree_pas_de_temps)  # pour decharger la nuit
         else:
             cas = 2  # batterie pas chargee a fond
 
@@ -57,53 +62,51 @@ class Player:
             chargement_batterie = self.max_load * np.sign(chargement_batterie)
         return chargement_batterie
 
-    def update_battery_stock(self, time,load):
-            if abs(load) > self.max_load:
-                load = self.max_load*np.sign(load) #saturation au maximum de la batterie
-            
-            new_stock = self.battery_stock[time] + (self.efficiency*max(0,load) - 1/self.efficiency * max(0,-load))*self.dt
-            
-            #On rétablit les conditions si le joueur ne les respecte pas :
-            
-            if new_stock < 0: #impossible, le min est 0, on calcule le load correspondant
-                load = - self.battery_stock[time] / (self.efficiency*self.dt)
-                new_stock = 0
-    
-            elif new_stock > self.capacity:
-                load = (self.capacity - self.battery_stock[time]) / (self.efficiency*self.dt)
-                new_stock = self.capacity
-    
-            self.battery_stock[time+1] = new_stock
-            
-            
-            return load
-        
-    def compute_load(self,time,sun):
+    def update_battery_stock(self, time, load):
+        if abs(load) > self.max_load:
+            load = self.max_load * np.sign(load)  # saturation au maximum de la batterie
+
+        new_stock = self.battery_stock[time] + (
+                    self.efficiency * max(0, load) - 1 / self.efficiency * max(0, -load)) * self.dt
+
+        # On rétablit les conditions si le joueur ne les respecte pas :
+
+        if new_stock < 0:  # impossible, le min est 0, on calcule le load correspondant
+            load = - self.battery_stock[time] / (self.efficiency * self.dt)
+            new_stock = 0
+
+        elif new_stock > self.capacity:
+            load = (self.capacity - self.battery_stock[time]) / (self.efficiency * self.dt)
+            new_stock = self.capacity
+
+        self.battery_stock[time + 1] = new_stock
+
+        return load
+
+    def compute_load(self, time, sun):
         load_player = self.take_decision(time)
-        load_battery=self.update_battery_stock(time,load_player)
-        self.load[time]=load_battery - sun
-        
+        load_battery = self.update_battery_stock(time, load_player)
+        self.load[time] = load_battery - sun
+
         return self.load[time]
-    
+
     def observe(self, t, sun, price, imbalance):
         self.sun.append(sun)
-        
+
         self.prices["purchase"].append(price["purchase"])
         self.prices["sale"].append(price["sale"])
 
         self.imbalance["purchase_cover"].append(imbalance["purchase_cover"])
         self.imbalance["sale_cover"].append(imbalance["sale_cover"])
-    
+
     def reset(self):
-        self.load= np.zeros(48)
+        self.load = np.zeros(48)
         self.bill = np.zeros(48)
-        
+
         last_bat = self.battery_stock[-1]
         self.battery_stock = np.zeros(49)
         self.battery_stock[0] = last_bat
-        
-        self.sun=[]
-        self.prices = {"purchase" : [],"sale" : []}
-        self.imbalance={"purchase_cover":[], "sale_cover": []}
 
-
+        self.sun = []
+        self.prices = {"purchase": [], "sale": []}
+        self.imbalance = {"purchase_cover": [], "sale_cover": []}
