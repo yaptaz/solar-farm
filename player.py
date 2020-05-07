@@ -20,6 +20,7 @@ class Player:
             duree_pas_de_temps = 0.5
             # TO DO:
             # changer signes
+            # check tableau sun
 
             if time == 0:
                 return 0
