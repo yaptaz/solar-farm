@@ -19,6 +19,9 @@ class Player:
         self.memoire_NRJ = 0
 
     def take_decision(self, time):
+        #ON A AJOUTE self.memoire_NRJ = 0 DANS _INIT_.
+        #FAITES ATTENTION SI VOUS COPIEZ DES PARTIES DU CODE, MERCI !
+
         duree_pas_de_temps = self.dt
         chargement_batterie = 0
 
