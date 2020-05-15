@@ -17,13 +17,21 @@ class Player:
         self.prices = {"purchase": [], "sale": []}
         self.imbalance = {"purchase_cover": [], "sale_cover": []}
         self.memoire_NRJ = 0
+        self.memoire_prix_interne = np.zeros(48)
 
     def take_decision(self, time):
-        #ON A AJOUTE self.memoire_NRJ = 0 DANS _INIT_.
-        #FAITES ATTENTION SI VOUS COPIEZ DES PARTIES DU CODE, MERCI !
+        # ON A AJOUTE self.memoire_NRJ = 0
+        # et self.memoire_prix_interne = np.zeros(48)
+        # DANS _INIT_.
+        # FAITES ATTENTION SI VOUS COPIEZ DES PARTIES DU CODE, MERCI !
 
         duree_pas_de_temps = self.dt
         chargement_batterie = 0
+
+        moyenne_prix_journee = 0
+        for temps in range(12, 37):
+            moyenne_prix_journee += self.memoire_prix_interne[temps]
+        moyenne_prix_journee = moyenne_prix_journee / 24
 
         if (time == 40):
             self.memoire_NRJ = self.battery_stock[39] / 8
@@ -35,8 +43,12 @@ class Player:
         else:
             cas = 2  # batterie pas chargee a fond
 
-        if time >= 20 and time < 30:  # chargement de la batterie au milieu de la journee
-            chargement_batterie = (self.sun[time - 1] / 2) + 1  # +1 au cas ou sun marche pas
+        if time >= 20 and time < 36:  # chargement de la batterie au milieu de la journee
+            if (self.memoire_prix_interne[time] < moyenne_prix_journee):
+                chargement_batterie = (self.sun[time - 1] / 2) + 1  # +1 au cas ou sun marche pas
+            else:
+                chargement_batterie = 0
+
             if (self.battery_stock[
                     time - 1] + chargement_batterie * duree_pas_de_temps) > self.capacity:  # verification de la capacite
                 chargement_batterie = (self.capacity - self.battery_stock[time - 1]) / duree_pas_de_temps
@@ -59,6 +71,12 @@ class Player:
                 # 5 correspond au nombre de pas de temps entre 22H et minuit ???
             else:
                 chargement_batterie = 0
+
+        # Enregistrement du prix
+        if (time == 0):
+            self.memoire_prix_interne[47] = 0
+        else:
+            self.memoire_prix_interne[time - 1] = self.prices["sale"][time - 1]
 
         # On vérifie qu'on ne dépasse pas la puissance max.
         if (abs(chargement_batterie) > self.max_load):
