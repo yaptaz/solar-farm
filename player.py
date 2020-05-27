@@ -24,7 +24,7 @@ class Player:
         # et self.memoire_prix_interne = np.zeros(48)
         # DANS _INIT_.
         # FAITES ATTENTION SI VOUS COPIEZ DES PARTIES DU CODE, MERCI !
-        #pre 28 mai
+        #essai 28 mai
 
         duree_pas_de_temps = self.dt
         chargement_batterie = 0
